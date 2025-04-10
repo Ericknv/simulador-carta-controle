@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+<head>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<div id="currentTime">Carregando hora...</div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>function setLanguage(lang) {
+  const texts = {
+    pt: {
+      title: 'Cartas de Controle X̄ e R',
+      sizeLabel: 'Tamanho da amostra (n):',
+      fillLabel: 'Preencha os valores das amostras:',
+      add: 'Adicionar Amostra',
+      remove: 'Remover Amostra',
+      clear: 'Limpar Tabela',
+      generate: 'Gerar Cartas',
+      export: 'Exportar para PDF',
+      chartX: 'Carta de Controle X̄',
+      chartR: 'Carta de Controle R',
+      outControl: 'Pontos Fora de Controle',
+      inControl: 'Todos os pontos estão dentro dos limites de controle.',
+      darkMode: 'Modo Escuro'
+    },
+    en: {
+      title: 'Control Charts X̄ and R',
+      sizeLabel: 'Sample size (n):',
+      fillLabel: 'Enter sample values:',
+      add: 'Add Sample',
+      remove: 'Remove Sample',
+      clear: 'Clear Table',
+      generate: 'Generate Charts',
+      export: 'Export to PDF',
+      chartX: 'Control Chart X̄',
+      chartR: 'Control Chart R',
+      outControl: 'Out of Control Points',
+      inControl: 'All points are within control limits.',
+      darkMode: 'Dark Mode'
+    }
+  };
+
+  const t = texts[lang];
+  document.title = t.title;
+  document.querySelector('h1').innerText = t.title;
+  document.querySelector('label[for="tamanho"]').innerText = t.sizeLabel;
+  document.querySelectorAll('label')[1].innerText = t.fillLabel;
+  const buttons = document.querySelectorAll('.btn-inline button');
+  if (buttons.length === 3) {
+    buttons[0].innerHTML = '+ ' + t.add;
+    buttons[1].innerHTML = '- ' + t.remove;
+    buttons[2].innerHTML = '🗑️ ' + t.clear;
+  }
+  document.querySelector('button[onclick="gerarCartasControle()"]')?.innerText = t.generate;
+  document.querySelector('button[onclick="exportarPDF()"]')?.innerText = '📄 ' + t.export;
+  document.querySelectorAll('#offcanvasMenu .btn')[0].innerHTML = '<i class="fas fa-plus"></i> ' + t.add;
+  document.querySelectorAll('#offcanvasMenu .btn')[1].innerHTML = '<i class="fas fa-minus"></i> ' + t.remove;
+  document.querySelectorAll('#offcanvasMenu .btn')[2].innerHTML = '<i class="fas fa-trash"></i> ' + t.clear;
+  document.querySelectorAll('#offcanvasMenu .btn')[3].innerHTML = '<i class="fas fa-chart-line"></i> ' + t.generate;
+  document.querySelectorAll('#offcanvasMenu .btn')[4].innerHTML = '<i class="fas fa-file-pdf"></i> ' + t.export;
+  document.querySelectorAll('#offcanvasMenu .btn')[5].innerHTML = '<i id="icon-darkmode-sidebar" class="fas fa-moon"></i> ' + t.darkMode;
+
+  localStorage.setItem('lang', lang);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const lang = localStorage.getItem('lang') || 'pt';
+  document.getElementById('langSelect').value = lang;
+  setLanguage(lang);
+});
+</script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<meta charset="utf-8"/>
+<title>Cartas de Controle X̄ e R</title>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+    :root {
+      --bg-color: #f5f6fa;
+      --text-color: #2d3436;
+      --card-bg: white;
+      --button-bg: #00b894;
+      --input-bg: white;
+      --table-border: #ccc;
+    }
+
+    body.dark {
+      --bg-color: #1e1e2f;
+      --text-color: #ffffff;
+      --card-bg: #2e2e3e;
+      --button-bg: #0984e3;
+      --input-bg: #3b3b4f;
+      --table-border: #555;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: var(--bg-color);
+      color: var(--text-color);
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: var(--card-bg);
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: var(--text-color);
+    }
+    label, input, button, table {
+      width: 100%;
+      font-size: 16px;
+      margin-bottom: 15px;
+    }
+    input[type="number"] {
+      padding: 10px;
+      background: var(--input-bg);
+      color: var(--text-color);
+      border: 1px solid var(--table-border);
+    }
+    button {
+      padding: 10px;
+      background: var(--button-bg);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-inline {
+      display: inline-block;
+      width: auto;
+      margin-right: 10px;
+    }
+    canvas {
+      margin-top: 30px;
+      background: white;
+      border-radius: 5px;
+      width: 100% !important;
+      height: auto !important;
+    }
+    #dadosTable input {
+      width: 100%;
+      padding: 8px;
+      text-align: center;
+      background: var(--input-bg);
+      color: var(--text-color);
+      border: 1px solid var(--table-border);
+    }
+    #dadosTable, #tabela-fdc {
+      margin-bottom: 20px;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+    }
+    #dadosTable td, #dadosTable th, #tabela-fdc td, #tabela-fdc th {
+      border: 1px solid var(--table-border);
+      padding: 8px;
+      text-align: center;
+      min-width: 80px;
+    }
+    .toggle-mode {
+      margin-bottom: 20px;
+      text-align: right;
+    }
+    @media (max-width: 600px) {
+      .container {
+        padding: 15px;
+      }
+      label, input, button {
+        font-size: 14px;
+      }
+      .btn-inline {
+        display: block;
+        margin-bottom: 10px;
+      }
+    }
+      .mobile-nav {
+      display: none;
+      background: var(--card-bg);
+      padding: 10px;
+      margin-bottom: 20px;
+    }
+    .mobile-nav button {
+      width: 100%;
+      margin-bottom: 5px;
+    }
+    @media (max-width: 600px) {
+      .mobile-nav {
+        display: block;
+      }
+      .toggle-mode, .btn-inline, button[onclick*='gerarCartasControle'], button[onclick*='exportarPDF'] {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+<button aria-controls="offcanvasMenu" class="btn btn-outline-secondary d-md-none m-2" data-bs-target="#offcanvasMenu" data-bs-toggle="offcanvas" type="button">
+<i class="fas fa-bars"></i> Menu
+</button>
+<div aria-labelledby="offcanvasMenuLabel" class="offcanvas offcanvas-start" id="offcanvasMenu" tabindex="-1">
+<div class="offcanvas-header">
+<h5 class="offcanvas-title" id="offcanvasMenuLabel">Menu</h5>
+<button aria-label="Fechar" class="btn-close text-reset" data-bs-dismiss="offcanvas" type="button"></button>
+</div>
+<div class="offcanvas-body">
+<button class="btn btn-success w-100 mb-2" onclick="adicionarLinha()"><i class="fas fa-plus"></i> Adicionar Amostra</button>
+<button class="btn btn-warning w-100 mb-2" onclick="removerLinha()"><i class="fas fa-minus"></i> Remover Amostra</button>
+<button class="btn btn-danger w-100 mb-2" onclick="limparTabela()"><i class="fas fa-trash"></i> Limpar Tabela</button>
+<button class="btn btn-primary w-100 mb-2" onclick="gerarCartasControle()"><i class="fas fa-chart-line"></i> Gerar Cartas</button>
+<button class="btn btn-secondary w-100 mb-2" onclick="exportarPDF()"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
+<button class="btn btn-dark w-100 mb-2" onclick="toggleDarkMode()">
+<i class="fas fa-moon" id="icon-darkmode-sidebar"></i> Modo Escuro
+</button>
+</div>
+</div>
+<div class="container">
+<div class="mb-3 text-end">
+<select class="form-select w-auto d-inline" id="langSelect" onchange="setLanguage(this.value)">
+<option value="pt">Português</option>
+<option value="en">English</option>
+</select>
+</div>
+<div class="toggle-mode">
+<button onclick="toggleDarkMode()">
+<i class="fas fa-moon" id="icon-darkmode-top"></i> Alternar Modo Escuro
+</button>
+</div>
+<h1>Cartas de Controle X̄ e R</h1>
+<label for="tamanho">Tamanho da amostra (n):</label>
+<input id="tamanho" min="2" onchange="gerarTabelaInputs()" type="number" value="3"/>
+<label>Preencha os valores das amostras:</label>
+<div class="btn-inline">
+<button onclick="adicionarLinha()">+ Adicionar Amostra</button>
+<button onclick="removerLinha()">- Remover Amostra</button>
+<button onclick="limparTabela()">🗑️ Limpar Tabela</button>
+</div>
+<table id="dadosTable"></table>
+<button onclick="gerarCartasControle()">Gerar Cartas</button>
+<button onclick="exportarPDF()">📄 Exportar para PDF</button>
+<canvas id="graficoX"></canvas>
+<canvas id="graficoR"></canvas>
+<div id="fdc"></div>
+</div>
+<script>
+    function toggleMenu() {
+      const menu = document.getElementById('menuContent');
+      menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    }
+    function toggleDarkMode() {
+  const dark = document.body.classList.toggle('dark');
+  updateChartThemes();
+  localStorage.setItem('modoEscuro', dark);
+
+  const iconTop = document.getElementById('icon-darkmode-top');
+  const iconSidebar = document.getElementById('icon-darkmode-sidebar');
+  if (iconTop) iconTop.className = dark ? 'fas fa-sun' : 'fas fa-moon';
+  if (iconSidebar) iconSidebar.className = dark ? 'fas fa-sun' : 'fas fa-moon';
+  localStorage.setItem('modoEscuro', dark);
+}
+  </script>
+<script>
+    function updateChartThemes() {
+  const isDark = document.body.classList.contains('dark');
+  const color = isDark ? '#ffffff' : '#000000';
+
+  if (window.cartaX) {
+    window.cartaX.options.plugins.title.color = color;
+    window.cartaX.options.plugins.legend.labels.color = color;
+    window.cartaX.update();
+  }
+  if (window.cartaR) {
+    window.cartaR.options.plugins.title.color = color;
+    window.cartaR.options.plugins.legend.labels.color = color;
+    window.cartaR.update();
+  }
+}
+
+function toggleDarkMode() {
+  document.body.classList.toggle('dark');
+  updateChartThemes();
+}
+    function gerarTabelaInputs() {
+  const n = parseInt(document.getElementById("tamanho").value);
+  const tabela = document.getElementById("dadosTable");
+  tabela.innerHTML = "";
+  for (let i = 0; i < 5; i++) adicionarLinha();
+}
+
+function adicionarLinha() {
+  const n = parseInt(document.getElementById("tamanho").value);
+  const tabela = document.getElementById("dadosTable");
+  const row = tabela.insertRow();
+  for (let j = 0; j < n; j++) {
+    const cell = row.insertCell();
+    const input = document.createElement("input");
+    input.type = "number";
+    input.placeholder = `A${tabela.rows.length} - V${j+1}`;
+    cell.appendChild(input);
+  }
+}
+
+function removerLinha() {
+  const tabela = document.getElementById("dadosTable");
+  if (tabela.rows.length > 1) tabela.deleteRow(tabela.rows.length - 1);
+}
+
+function limparTabela() {
+  const tabela = document.getElementById("dadosTable");
+  tabela.innerHTML = "";
+}
+
+function gerarCartasControle() {
+  const n = parseInt(document.getElementById("tamanho").value);
+  const tabela = document.getElementById("dadosTable");
+  const linhas = tabela.rows.length;
+  const amostras = [];
+
+  for (let i = 0; i < linhas; i++) {
+    const valores = [];
+    for (let j = 0; j < n; j++) {
+      const val = parseFloat(tabela.rows[i].cells[j].firstChild.value);
+      if (!isNaN(val)) valores.push(val);
+    }
+    if (valores.length === n) amostras.push(valores);
+  }
+
+  if (amostras.length < 2) {
+    alert("Preencha ao menos duas amostras completas.");
+    return;
+  }
+
+  const medias = amostras.map(g => g.reduce((a, b) => a + b, 0) / g.length);
+  const amplitudes = amostras.map(g => Math.max(...g) - Math.min(...g));
+
+  const mediaX = medias.reduce((a, b) => a + b, 0) / medias.length;
+  const mediaR = amplitudes.reduce((a, b) => a + b, 0) / amplitudes.length;
+
+  const A2 = {2: 1.880, 3: 1.023, 4: 0.729, 5: 0.577, 6: 0.483}[n] || 0.577;
+  const D3 = {2: 0, 3: 0, 4: 0, 5: 0, 6: 0.076}[n] || 0;
+  const D4 = {2: 3.267, 3: 2.574, 4: 2.282, 5: 2.114, 6: 2.004}[n] || 2.114;
+
+  const lscX = mediaX + A2 * mediaR;
+  const licX = mediaX - A2 * mediaR;
+  const lscR = D4 * mediaR;
+  const licR = D3 * mediaR;
+
+  const labels = amostras.map((_, i) => `Amostra ${i + 1}`);
+  const linhaMediaX = Array(medias.length).fill(mediaX);
+  const linhaLSCX = Array(medias.length).fill(lscX);
+  const linhaLICX = Array(medias.length).fill(licX);
+  const linhaMediaR = Array(amplitudes.length).fill(mediaR);
+  const linhaLSCR = Array(amplitudes.length).fill(lscR);
+  const linhaLICR = Array(amplitudes.length).fill(licR);
+
+  const coresX = medias.map(v => (v > lscX || v < licX) ? '#d63031' : '#0984e3');
+  const coresR = amplitudes.map(v => (v > lscR || v < licR) ? '#d63031' : '#0984e3');
+
+  const fdcX = medias.map((v, i) => ({ tipo: 'X̄', index: i + 1, valor: v })).filter(p => p.valor > lscX || p.valor < licX);
+  const fdcR = amplitudes.map((v, i) => ({ tipo: 'R', index: i + 1, valor: v })).filter(p => p.valor > lscR || p.valor < licR);
+  const fdc = [...fdcX, ...fdcR];
+
+  let tabelaHTML = "";
+  if (fdc.length > 0) {
+    tabelaHTML = `<h3>Pontos Fora de Controle</h3><table id='tabela-fdc'>
+                    <tr><th>Tipo</th><th>Amostra</th><th>Valor</th></tr>
+                    ${fdc.map(p => `<tr><td>${p.tipo}</td><td>${p.index}</td><td>${p.valor}</td></tr>`).join('')}
+                  </table>`;
+  } else {
+    tabelaHTML = `<h3>Todos os pontos estão dentro dos limites de controle.</h3>`;
+  }
+  document.getElementById("fdc").innerHTML = tabelaHTML;
+
+  const isDark = document.body.classList.contains('dark');
+  const color = isDark ? '#ffffff' : '#000000';
+
+  const ctxX = document.getElementById("graficoX").getContext("2d");
+  if (window.cartaX) window.cartaX.destroy();
+  window.cartaX = new Chart(ctxX, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Médias (X̄)',
+          data: medias,
+          borderColor: '#0984e3',
+          backgroundColor: 'rgba(9,132,227,0.1)',
+          pointBackgroundColor: coresX,
+          pointRadius: 5,
+          tension: 0.2
+        },
+        {
+          label: 'Média Geral',
+          data: linhaMediaX,
+          borderColor: '#2d3436',
+          borderDash: [5, 5],
+          fill: false
+        },
+        {
+          label: 'LSC (X̄)',
+          data: linhaLSCX,
+          borderColor: '#d63031',
+          borderDash: [5, 5],
+          fill: false
+        },
+        {
+          label: 'LIC (X̄)',
+          data: linhaLICX,
+          borderColor: '#d63031',
+          borderDash: [5, 5],
+          fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: {
+          display: true,
+          text: 'Carta de Controle X̄',
+          color: color
+        },
+        legend: {
+          labels: {
+            color: color
+          }
+        }
+      }
+    }
+  });
+
+  const ctxR = document.getElementById("graficoR").getContext("2d");
+  if (window.cartaR) window.cartaR.destroy();
+  window.cartaR = new Chart(ctxR, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Amplitude (R)',
+          data: amplitudes,
+          borderColor: '#6c5ce7',
+          backgroundColor: 'rgba(108,92,231,0.1)',
+          pointBackgroundColor: coresR,
+          pointRadius: 5,
+          tension: 0.2
+        },
+        {
+          label: 'Média Amplitude',
+          data: linhaMediaR,
+          borderColor: '#2d3436',
+          borderDash: [5, 5],
+          fill: false
+        },
+        {
+          label: 'LSC (R)',
+          data: linhaLSCR,
+          borderColor: '#d63031',
+          borderDash: [5, 5],
+          fill: false
+        },
+        {
+          label: 'LIC (R)',
+          data: linhaLICR,
+          borderColor: '#d63031',
+          borderDash: [5, 5],
+          fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: {
+          display: true,
+          text: 'Carta de Controle R',
+          color: color
+        },
+        legend: {
+          labels: {
+            color: color
+          }
+        }
+      }
+    }
+  });
+}
+
+async function exportarPDF() {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF();
+  const canvasX = document.getElementById("graficoX");
+  const canvasR = document.getElementById("graficoR");
+
+  pdf.text("Carta de Controle X̄", 10, 10);
+  const imgX = canvasX.toDataURL("image/png");
+  pdf.addImage(imgX, 'PNG', 10, 15, 180, 80);
+
+  pdf.text("Carta de Controle R", 10, 105);
+  const imgR = canvasR.toDataURL("image/png");
+  pdf.addImage(imgR, 'PNG', 10, 110, 180, 80);
+
+  pdf.save("cartas_de_controle.pdf");
+}
+
+window.onload = () => {
+  const iconTop = document.getElementById('icon-darkmode-top');
+  const iconSidebar = document.getElementById('icon-darkmode-sidebar');
+  const darkModeActive = localStorage.getItem('modoEscuro') === 'true';
+  if (darkModeActive) {
+    document.body.classList.add('dark');
+    updateChartThemes();
+  }
+  if (iconTop) iconTop.className = darkModeActive ? 'fas fa-sun' : 'fas fa-moon';
+  if (iconSidebar) iconSidebar.className = darkModeActive ? 'fas fa-sun' : 'fas fa-moon';
+  gerarTabelaInputs();
+  if (localStorage.getItem('modoEscuro') === 'true') {
+    document.body.classList.add('dark');
+    updateChartThemes();
+  }
+};
+  </script>
+</body>
+</html>
