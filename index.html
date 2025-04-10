@@ -1,186 +1,131 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
- <head>
-  <meta charset="utf-8"/>
-  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-  <title data-i18n="title">
-   Cartas de Controle X̄ e R
-  </title>
-  <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
-  <!-- Font Awesome -->
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js">
-  </script>
-  <!-- jsPDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
-  </script>
-  <style>
-   body {
-      background-color: #f8f9fa;
-      color: #212529;
-      font-family: Arial, sans-serif;
-      padding-bottom: 100px;
-    }
-    .container {
-      max-width: 900px;
-      margin: auto;
-      padding: 30px;
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.1);
-    }
-    .btn-inline button {
-      margin: 5px 5px 5px 0;
-    }
-    canvas {
-      margin-top: 30px;
-      width: 100% !important;
-      height: auto !important;
-      background: #fff;
-      border-radius: 5px;
-    }
-    #dadosTable input {
-      width: 100%;
-      padding: 8px;
-      text-align: center;
-    }
-    #dadosTable, #tabela-fdc {
-      width: 100%;
-      margin-bottom: 20px;
-      border-collapse: collapse;
-    }
-    #dadosTable td, #tabela-fdc td, #tabela-fdc th {
-      border: 1px solid #ccc;
-      padding: 8px;
-    }
-    .menu-fixo {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 1055;
-    }
-    .menu-fixo button {
-      border-radius: 50%;
-      width: 60px;
-      height: 60px;
-      font-size: 1.5rem;
-      padding: 0;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-    }
-  </style>
- </head>
- <body>
-  <div class="container mt-3">
-   <div class="d-flex justify-content-end mb-3">
-    <select class="form-select w-auto" id="langSelect" onchange="setLanguage(this.value)">
-     <option value="pt">
-      Português
-     </option>
-     <option value="en">
-      English
-     </option>
-    </select>
-    <button aria-controls="offcanvasMenu" class="btn btn-warning d-none d-md-inline-block ms-2" data-bs-target="#offcanvasMenu" data-bs-toggle="offcanvas" type="button">
-     <i class="fas fa-bars me-1">
-     </i>
-     Menu
-    </button>
-   </div>
-   <h1 class="text-center" data-i18n="title">
-    Cartas de Controle X̄ e R
-   </h1>
-   <label data-i18n="sizeLabel" for="tamanho">
-    Tamanho da amostra (n):
-   </label>
-   <input class="form-control" id="tamanho" min="2" onchange="gerarTabelaInputs()" title="Escolha o tamanho de cada amostra (mínimo 2)" type="number" value="3"/>
-   <label data-i18n="fillLabel">
-    Preencha os valores das amostras:
-   </label>
-   <div class="btn-inline">
-    <button class="btn btn-success" data-i18n-html="add" onclick="adicionarLinha()">
-     + Adicionar Amostra
-    </button>
-    <button class="btn btn-warning" data-i18n-html="remove" onclick="removerLinha()">
-     - Remover Amostra
-    </button>
-    <button class="btn btn-danger" data-i18n-html="clear" onclick="limparTabela()">
-     🗑️ Limpar Tabela
-    </button>
-   </div>
-   <table id="dadosTable">
-   </table>
-   <button class="btn btn-primary w-100" data-i18n-html="generate" onclick="gerarCartasControle()">
-    Gerar Cartas
-   </button>
-   <button class="btn btn-secondary w-100 mt-2" data-i18n-html="export" onclick="exportarPDF()">
-    📄 Exportar para PDF
-   </button>
-   <canvas id="graficoX">
-   </canvas>
-   <canvas id="graficoR">
-   </canvas>
-   <div id="fdc">
-   </div>
-  </div>
-  <div class="menu-fixo">
-   <button aria-controls="offcanvasMenu" class="btn btn-warning shadow" data-bs-target="#offcanvasMenu" data-bs-toggle="offcanvas" style="border-radius: 10px; width: 64px; height: 64px; font-size: 1.4rem; padding: 0;">
-    <i class="fas fa-ellipsis-v">
-    </i>
-   </button>
-  </div>
-  <div aria-labelledby="offcanvasMenuLabel" class="offcanvas offcanvas-start" id="offcanvasMenu" tabindex="-1">
-   <div class="offcanvas-header">
-    <h5 class="offcanvas-title" id="offcanvasMenuLabel">
-     Menu
-    </h5>
-    <button aria-label="Fechar" class="btn-close" data-bs-dismiss="offcanvas" type="button">
-    </button>
-   </div>
-   <div class="offcanvas-body">
-    <button class="btn btn-success w-100" onclick="adicionarLinha()">
-     <i class="fas fa-plus">
-     </i>
-     <span data-i18n="add">
-      Adicionar Amostra
-     </span>
-    </button>
-    <button class="btn btn-warning w-100" onclick="removerLinha()">
-     <i class="fas fa-minus">
-     </i>
-     <span data-i18n="remove">
-      Remover Amostra
-     </span>
-    </button>
-    <button class="btn btn-danger w-100" onclick="limparTabela()">
-     <i class="fas fa-trash">
-     </i>
-     <span data-i18n="clear">
-      Limpar Tabela
-     </span>
-    </button>
-    <button class="btn btn-primary w-100" onclick="gerarCartasControle()">
-     <i class="fas fa-chart-line">
-     </i>
-     <span data-i18n="generate">
-      Gerar Cartas
-     </span>
-    </button>
-    <button class="btn btn-secondary w-100" onclick="exportarPDF()">
-     <i class="fas fa-file-pdf">
-     </i>
-     <span data-i18n="export">
-      Exportar PDF
-     </span>
-    </button>
-   </div>
-  </div>
-  <!-- Bootstrap JS corretamente carregado -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
-  </script>
-  <!-- script.js separado -->
-  <script src="script.js">
-  </script>
- </body>
-</html>
+  <!DOCTYPE html>
+  <html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="title">Cartas de Controle X̄ e R</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+      body {
+        background-color: #f8f9fa;
+        color: #212529;
+        font-family: Arial, sans-serif;
+        padding-bottom: 100px;
+      }
+      .dark-mode {
+        background-color: #1e1e2f;
+        color: #ffffff;
+      }
+      .dark-mode .container {
+        background-color: #2e2e3e;
+      }
+      .container {
+        max-width: 900px;
+        margin: auto;
+        padding: 30px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      }
+      .btn-inline button {
+        margin: 5px 5px 5px 0;
+      }
+      canvas {
+        margin-top: 30px;
+        width: 100% !important;
+        height: auto !important;
+        background: #fff;
+        border-radius: 5px;
+      }
+      #dadosTable input {
+        width: 100%;
+        padding: 8px;
+        text-align: center;
+      }
+      #dadosTable, #tabela-fdc {
+        width: 100%;
+        margin-bottom: 20px;
+        border-collapse: collapse;
+      }
+      #dadosTable td, #tabela-fdc td, #tabela-fdc th {
+        border: 1px solid #ccc;
+        padding: 8px;
+      }
+      .offcanvas-body .btn {
+        margin-bottom: 10px;
+      }
+      .menu-fixo {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1055;
+      }
+      .menu-fixo button {
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+        padding: 0;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container mt-3">
+      <div class="d-flex justify-content-end mb-3">
+        <select id="langSelect" class="form-select w-auto" onchange="setLanguage(this.value)">
+          <option value="pt">Português</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+  
+      <h1 class="text-center" data-i18n="title">Cartas de Controle X̄ e R</h1>
+  
+      <label for="tamanho" data-i18n="sizeLabel">Tamanho da amostra (n):</label>
+      <input type="number" class="form-control" id="tamanho" value="3" min="2" onchange="gerarTabelaInputs()" title="Escolha o tamanho de cada amostra (mínimo 2)">
+  
+      <label data-i18n="fillLabel">Preencha os valores das amostras:</label>
+      <div class="btn-inline">
+        <button class="btn btn-success" onclick="adicionarLinha()" data-i18n-html="add">+ Adicionar Amostra</button>
+        <button class="btn btn-warning" onclick="removerLinha()" data-i18n-html="remove">- Remover Amostra</button>
+        <button class="btn btn-danger" onclick="limparTabela()" data-i18n-html="clear">🗑️ Limpar Tabela</button>
+      </div>
+  
+      <table id="dadosTable"></table>
+  
+      <button class="btn btn-primary w-100" onclick="gerarCartasControle()" data-i18n-html="generate">Gerar Cartas</button>
+      <button class="btn btn-secondary w-100 mt-2" onclick="exportarPDF()" data-i18n-html="export">📄 Exportar para PDF</button>
+  
+      <canvas id="graficoX"></canvas>
+      <canvas id="graficoR"></canvas>
+      <div id="fdc"></div>
+    </div>
+  
+    <div class="menu-fixo d-md-none">
+      <button class="btn btn-primary" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMenu">
+        <i class="fas fa-bars"></i>
+      </button>
+    </div>
+  
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasMenu">
+      <div class="offcanvas-header">
+        <h5 class="offcanvas-title">Menu</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+      </div>
+      <div class="offcanvas-body">
+        <button class="btn btn-success w-100" onclick="adicionarLinha()"><i class="fas fa-plus"></i> <span data-i18n="add">Adicionar Amostra</span></button>
+        <button class="btn btn-warning w-100" onclick="removerLinha()"><i class="fas fa-minus"></i> <span data-i18n="remove">Remover Amostra</span></button>
+        <button class="btn btn-danger w-100" onclick="limparTabela()"><i class="fas fa-trash"></i> <span data-i18n="clear">Limpar Tabela</span></button>
+        <button class="btn btn-primary w-100" onclick="gerarCartasControle()"><i class="fas fa-chart-line"></i> <span data-i18n="generate">Gerar Cartas</span></button>
+        <button class="btn btn-secondary w-100" onclick="exportarPDF()"><i class="fas fa-file-pdf"></i> <span data-i18n="export">Exportar PDF</span></button>
+        <button class="btn btn-dark w-100" onclick="toggleDarkMode()"><i class="fas fa-moon"></i> <span data-i18n="darkMode">Modo Escuro</span></button>
+      </div>
+    </div>
+  
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="script.js"></script>
+  </body>
+  </html>
