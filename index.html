@@ -163,5 +163,70 @@
       document.getElementById('textoModo').textContent = escuro ? 'Modo Claro' : 'Modo Escuro';
     });
   </script>
+  <script>
+  const traducoes = {
+    pt: {
+      title: "Cartas de Controle X̄ e R",
+      sizeLabel: "Tamanho da amostra (n):",
+      fillLabel: "Preencha os valores das amostras:",
+      add: "Adicionar Amostra",
+      remove: "Remover Amostra",
+      clear: "Limpar Tabela",
+      generate: "Gerar Cartas",
+      export: "Exportar PDF",
+      darkMode: "Modo Escuro",
+      lightMode: "Modo Claro",
+      outControl: "Pontos Fora de Controle",
+      noOutControl: "Todos os pontos estão dentro dos limites de controle.",
+      menu: "Menu"
+    },
+    en: {
+      title: "Control Charts X̄ and R",
+      sizeLabel: "Sample size (n):",
+      fillLabel: "Enter sample values:",
+      add: "Add Sample",
+      remove: "Remove Sample",
+      clear: "Clear Table",
+      generate: "Generate Charts",
+      export: "Export PDF",
+      darkMode: "Dark Mode",
+      lightMode: "Light Mode",
+      outControl: "Out of Control Points",
+      noOutControl: "All points are within control limits.",
+      menu: "Menu"
+    }
+  };
+
+  function setLanguage(lang) {
+    const dict = traducoes[lang] || traducoes.pt;
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+      const key = el.getAttribute("data-i18n");
+      if (dict[key]) el.textContent = dict[key];
+    });
+    document.querySelectorAll("[data-i18n-html]").forEach(el => {
+      const key = el.getAttribute("data-i18n-html");
+      if (dict[key]) el.innerHTML = dict[key];
+    });
+
+    // Ajuste do botão de tema
+    const textoModo = document.getElementById("textoModo");
+    if (textoModo) {
+      const modoAtivo = document.body.classList.contains("dark-mode");
+      textoModo.textContent = modoAtivo ? dict.lightMode : dict.darkMode;
+    }
+
+    // Título da página
+    if (dict.title) document.title = dict.title;
+
+    localStorage.setItem("lang", lang);
+  }
+
+  window.addEventListener("DOMContentLoaded", () => {
+    const lang = localStorage.getItem("lang") || "pt";
+    document.getElementById("langSelect").value = lang;
+    setLanguage(lang);
+  });
+</script>
+
 </body>
 </html>
