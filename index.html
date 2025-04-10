@@ -12,7 +12,7 @@
       background-color: #f8f9fa;
       color: #212529;
       font-family: Arial, sans-serif;
-      padding-bottom: 50px;
+      padding-bottom: 100px;
     }
     .dark-mode {
       background-color: #1e1e2f;
@@ -56,6 +56,20 @@
     .offcanvas-body .btn {
       margin-bottom: 10px;
     }
+    .menu-fixo {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1055;
+    }
+    .menu-fixo button {
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      font-size: 1.5rem;
+      padding: 0;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
   </style>
 </head>
 <body>
@@ -89,9 +103,11 @@
     <div id="fdc"></div>
   </div>
 
-  <button class="btn btn-outline-secondary m-2 d-md-none" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMenu">
-    <i class="fas fa-bars"></i> Menu
-  </button>
+  <div class="menu-fixo d-md-none">
+    <button class="btn btn-primary" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMenu">
+      <i class="fas fa-bars"></i>
+    </button>
+  </div>
 
   <div class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasMenu">
     <div class="offcanvas-header">
