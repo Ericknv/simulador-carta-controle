@@ -59,25 +59,6 @@
   </style>
 </head>
 <body>
-  <button class="btn btn-outline-secondary m-2 d-md-none" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMenu">
-    <i class="fas fa-bars"></i> Menu
-  </button>
-
-  <div class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasMenu">
-    <div class="offcanvas-header">
-      <h5 class="offcanvas-title">Menu</h5>
-      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-    </div>
-    <div class="offcanvas-body">
-      <button class="btn btn-success w-100" onclick="adicionarLinha()"><i class="fas fa-plus"></i> <span data-i18n="add">Adicionar Amostra</span></button>
-      <button class="btn btn-warning w-100" onclick="removerLinha()"><i class="fas fa-minus"></i> <span data-i18n="remove">Remover Amostra</span></button>
-      <button class="btn btn-danger w-100" onclick="limparTabela()"><i class="fas fa-trash"></i> <span data-i18n="clear">Limpar Tabela</span></button>
-      <button class="btn btn-primary w-100" onclick="gerarCartasControle()"><i class="fas fa-chart-line"></i> <span data-i18n="generate">Gerar Cartas</span></button>
-      <button class="btn btn-secondary w-100" onclick="exportarPDF()"><i class="fas fa-file-pdf"></i> <span data-i18n="export">Exportar PDF</span></button>
-      <button class="btn btn-dark w-100" onclick="toggleDarkMode()"><i class="fas fa-moon"></i> <span data-i18n="darkMode">Modo Escuro</span></button>
-    </div>
-  </div>
-
   <div class="container mt-3">
     <div class="d-flex justify-content-end mb-3">
       <select id="langSelect" class="form-select w-auto" onchange="setLanguage(this.value)">
@@ -106,6 +87,25 @@
     <canvas id="graficoX"></canvas>
     <canvas id="graficoR"></canvas>
     <div id="fdc"></div>
+  </div>
+
+  <button class="btn btn-outline-secondary m-2 d-md-none" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMenu">
+    <i class="fas fa-bars"></i> Menu
+  </button>
+
+  <div class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasMenu">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title">Menu</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+      <button class="btn btn-success w-100" onclick="adicionarLinha()"><i class="fas fa-plus"></i> <span data-i18n="add">Adicionar Amostra</span></button>
+      <button class="btn btn-warning w-100" onclick="removerLinha()"><i class="fas fa-minus"></i> <span data-i18n="remove">Remover Amostra</span></button>
+      <button class="btn btn-danger w-100" onclick="limparTabela()"><i class="fas fa-trash"></i> <span data-i18n="clear">Limpar Tabela</span></button>
+      <button class="btn btn-primary w-100" onclick="gerarCartasControle()"><i class="fas fa-chart-line"></i> <span data-i18n="generate">Gerar Cartas</span></button>
+      <button class="btn btn-secondary w-100" onclick="exportarPDF()"><i class="fas fa-file-pdf"></i> <span data-i18n="export">Exportar PDF</span></button>
+      <button class="btn btn-dark w-100" onclick="toggleDarkMode()"><i class="fas fa-moon"></i> <span data-i18n="darkMode">Modo Escuro</span></button>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
