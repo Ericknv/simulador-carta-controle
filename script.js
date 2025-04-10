@@ -1,6 +1,7 @@
 // script.js
 
-// Tradução dinâmica
+let cartaX, cartaR;
+
 function setLanguage(lang) {
   const texts = {
     pt: {
@@ -11,12 +12,11 @@ function setLanguage(lang) {
       remove: 'Remover Amostra',
       clear: 'Limpar Tabela',
       generate: 'Gerar Cartas',
-      export: 'Exportar para PDF',
-      chartX: 'Carta de Controle X̄',
-      chartR: 'Carta de Controle R',
-      outControl: 'Pontos Fora de Controle',
-      inControl: 'Todos os pontos estão dentro dos limites de controle.',
-      darkMode: 'Modo Escuro'
+      export: 'Exportar PDF',
+      darkMode: 'Modo Escuro',
+      lightMode: 'Modo Claro',
+      noOut: 'Todos os pontos estão dentro dos limites de controle.',
+      outPoints: 'Pontos Fora de Controle'
     },
     en: {
       title: 'Control Charts X̄ and R',
@@ -26,38 +26,59 @@ function setLanguage(lang) {
       remove: 'Remove Sample',
       clear: 'Clear Table',
       generate: 'Generate Charts',
-      export: 'Export to PDF',
-      chartX: 'Control Chart X̄',
-      chartR: 'Control Chart R',
-      outControl: 'Out of Control Points',
-      inControl: 'All points are within control limits.',
-      darkMode: 'Dark Mode'
+      export: 'Export PDF',
+      darkMode: 'Dark Mode',
+      lightMode: 'Light Mode',
+      noOut: 'All points are within control limits.',
+      outPoints: 'Out of Control Points'
     }
   };
+
   const t = texts[lang];
+  document.title = t.title;
+  document.querySelector('[data-i18n="title"]').innerText = t.title;
+  document.querySelector('[data-i18n="sizeLabel"]').innerText = t.sizeLabel;
+  document.querySelector('[data-i18n="fillLabel"]').innerText = t.fillLabel;
+
+  document.querySelectorAll('[data-i18n-html]').forEach(btn => {
+    const key = btn.getAttribute('data-i18n-html');
+    if (t[key]) btn.innerHTML = btn.innerHTML.replace(/>.+<\//, `>${t[key]}</`);
+  });
+
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
-    if (t[key]) el.innerText = t[key];
+    if (t[key]) el.textContent = t[key];
   });
-  document.querySelectorAll('[data-i18n-html]').forEach(el => {
-    const key = el.getAttribute('data-i18n-html');
-    if (t[key]) el.innerHTML = t[key];
-  });
+
+  const modo = document.body.classList.contains('dark-mode') ? 'lightMode' : 'darkMode';
+  const icone = document.getElementById('iconeModo');
+  const texto = document.getElementById('textoModo');
+  icone.className = modo === 'lightMode' ? 'fas fa-sun' : 'fas fa-moon';
+  texto.textContent = t[modo];
+
   localStorage.setItem('lang', lang);
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-  const lang = localStorage.getItem('lang') || 'pt';
-  document.getElementById('langSelect').value = lang;
-  setLanguage(lang);
-  gerarTabelaInputs();
-  restaurarAmostrasSalvas();
-});
-
-function toggleDarkMode() {
+function alternarModoEscuro() {
   document.body.classList.toggle('dark-mode');
-  localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
-  atualizarTemaGrafico();
+  const lang = localStorage.getItem('lang') || 'pt';
+  setLanguage(lang);
+  atualizarEstiloGraficos();
+  localStorage.setItem('modoEscuro', document.body.classList.contains('dark-mode'));
+}
+
+function atualizarEstiloGraficos() {
+  const cor = document.body.classList.contains('dark-mode') ? '#fff' : '#000';
+  if (cartaX) {
+    cartaX.options.plugins.title.color = cor;
+    cartaX.options.plugins.legend.labels.color = cor;
+    cartaX.update();
+  }
+  if (cartaR) {
+    cartaR.options.plugins.title.color = cor;
+    cartaR.options.plugins.legend.labels.color = cor;
+    cartaR.update();
+  }
 }
 
 function gerarTabelaInputs() {
@@ -76,82 +97,34 @@ function adicionarLinha() {
     const input = document.createElement("input");
     input.type = "number";
     input.placeholder = `A${tabela.rows.length} - V${j+1}`;
-    input.title = "Digite o valor da medição para esta amostra";
-    input.addEventListener('input', salvarAmostrasLocal);
     cell.appendChild(input);
   }
-  salvarAmostrasLocal();
 }
 
 function removerLinha() {
   const tabela = document.getElementById("dadosTable");
   if (tabela.rows.length > 1) tabela.deleteRow(tabela.rows.length - 1);
-  salvarAmostrasLocal();
 }
 
 function limparTabela() {
-  if (confirm("Tem certeza que deseja limpar a tabela?")) {
-    document.getElementById("dadosTable").innerHTML = "";
-    localStorage.removeItem('amostras');
-  }
+  document.getElementById("dadosTable").innerHTML = "";
+  document.getElementById("fdc").innerHTML = "";
+  if (cartaX) cartaX.destroy();
+  if (cartaR) cartaR.destroy();
 }
 
-function salvarAmostrasLocal() {
-  const tabela = document.getElementById("dadosTable");
-  const dados = [];
-  for (let i = 0; i < tabela.rows.length; i++) {
-    const linha = [];
-    for (let j = 0; j < tabela.rows[i].cells.length; j++) {
-      linha.push(tabela.rows[i].cells[j].firstChild.value);
-    }
-    dados.push(linha);
-  }
-  localStorage.setItem("amostras", JSON.stringify(dados));
-}
-
-function restaurarAmostrasSalvas() {
-  const json = localStorage.getItem("amostras");
-  if (!json) return;
-  const dados = JSON.parse(json);
-  const tabela = document.getElementById("dadosTable");
-  tabela.innerHTML = "";
-  for (let i = 0; i < dados.length; i++) {
-    const row = tabela.insertRow();
-    for (let j = 0; j < dados[i].length; j++) {
-      const cell = row.insertCell();
-      const input = document.createElement("input");
-      input.type = "number";
-      input.value = dados[i][j];
-      input.placeholder = `A${i+1} - V${j+1}`;
-      input.title = "Digite o valor da medição para esta amostra";
-      input.addEventListener('input', salvarAmostrasLocal);
-      cell.appendChild(input);
-    }
-  }
-}
-
-let cartaX, cartaR;
 function gerarCartasControle() {
   const n = parseInt(document.getElementById("tamanho").value);
   const tabela = document.getElementById("dadosTable");
-  const amostras = [];
+  const amostras = Array.from(tabela.rows)
+    .map(row => Array.from(row.cells)
+      .map(cell => parseFloat(cell.firstChild.value)))
+    .filter(amostra => amostra.length === n && amostra.every(v => !isNaN(v)));
 
-  for (let i = 0; i < tabela.rows.length; i++) {
-    const valores = [];
-    for (let j = 0; j < n; j++) {
-      const val = parseFloat(tabela.rows[i].cells[j].firstChild.value);
-      if (!isNaN(val)) valores.push(val);
-    }
-    if (valores.length === n) amostras.push(valores);
-  }
+  if (amostras.length < 2) return alert("Preencha ao menos duas amostras completas.");
 
-  if (amostras.length < 2) {
-    alert("Preencha ao menos duas amostras completas.");
-    return;
-  }
-
-  const medias = amostras.map(g => g.reduce((a, b) => a + b, 0) / g.length);
-  const amplitudes = amostras.map(g => Math.max(...g) - Math.min(...g));
+  const medias = amostras.map(am => am.reduce((a, b) => a + b) / am.length);
+  const amplitudes = amostras.map(am => Math.max(...am) - Math.min(...am));
 
   const mediaX = medias.reduce((a, b) => a + b, 0) / medias.length;
   const mediaR = amplitudes.reduce((a, b) => a + b, 0) / amplitudes.length;
@@ -166,75 +139,78 @@ function gerarCartasControle() {
   const licR = D3 * mediaR;
 
   const labels = amostras.map((_, i) => `Amostra ${i + 1}`);
-  const linha = len => Array(len);
-
-  const fdcX = medias.map((v, i) => ({ tipo: 'X̄', index: i + 1, valor: v })).filter(p => p.valor > lscX || p.valor < licX);
-  const fdcR = amplitudes.map((v, i) => ({ tipo: 'R', index: i + 1, valor: v })).filter(p => p.valor > lscR || p.valor < licR);
-  const fdc = [...fdcX, ...fdcR];
-
-  document.getElementById("fdc").innerHTML = fdc.length ?
-    `<h3>Pontos Fora de Controle</h3><table id='tabela-fdc'><tr><th>Tipo</th><th>Amostra</th><th>Valor</th></tr>${fdc.map(p => `<tr><td>${p.tipo}</td><td>${p.index}</td><td>${p.valor}</td></tr>`).join('')}</table>` :
-    `<h3>Todos os pontos estão dentro dos limites de controle.</h3>`;
-
   const cor = document.body.classList.contains('dark-mode') ? '#fff' : '#000';
-  const corFora = '#d63031';
 
-  const config = (id, dados, media, lsc, lic, titulo, corLinha) => new Chart(document.getElementById(id), {
+  const outX = medias.map((v, i) => (v < licX || v > lscX) ? i + 1 : null).filter(Boolean);
+  const outR = amplitudes.map((v, i) => (v < licR || v > lscR) ? i + 1 : null).filter(Boolean);
+
+  document.getElementById("fdc").innerHTML = (outX.length || outR.length)
+    ? `<h5>${getText('outPoints')}</h5><p>${[...outX.map(i => `X̄ A${i}`), ...outR.map(i => `R A${i}`)].join(', ')}</p>`
+    : `<h5>${getText('noOut')}</h5>`;
+
+  if (cartaX) cartaX.destroy();
+  if (cartaR) cartaR.destroy();
+
+  const ctxX = document.getElementById("graficoX").getContext("2d");
+  cartaX = new Chart(ctxX, {
     type: 'line',
     data: {
       labels,
       datasets: [
-        {
-          label: titulo,
-          data: dados,
-          borderColor: corLinha,
-          pointBackgroundColor: dados.map(v => v > lsc || v < lic ? corFora : corLinha),
-          fill: false,
-          tension: 0.3,
-          pointRadius: 6,
-          pointHoverRadius: 8
-        },
-        { label: 'Média', data: linha(dados.length).fill(media), borderColor: cor, borderDash: [5, 5], fill: false },
-        { label: 'LSC', data: linha(dados.length).fill(lsc), borderColor: corFora, borderDash: [5, 5], fill: false },
-        { label: 'LIC', data: linha(dados.length).fill(lic), borderColor: corFora, borderDash: [5, 5], fill: false }
+        {label: 'X̄', data: medias, borderColor: '#0984e3', backgroundColor: 'rgba(9,132,227,0.1)'},
+        {label: 'Média', data: Array(medias.length).fill(mediaX), borderColor: cor, borderDash: [5, 5], fill: false},
+        {label: 'LSC', data: Array(medias.length).fill(lscX), borderColor: '#d63031', borderDash: [5, 5]},
+        {label: 'LIC', data: Array(medias.length).fill(licX), borderColor: '#d63031', borderDash: [5, 5]}
       ]
     },
-    options: {
-      responsive: true,
-      animation: {
-        duration: 1000,
-        easing: 'easeOutBounce'
-      },
-      plugins: {
-        title: { display: true, text: titulo, color: cor },
-        legend: { labels: { color: cor } }
-      },
-      scales: {
-        x: { ticks: { color: cor } },
-        y: { ticks: { color: cor } }
-      }
-    }
+    options: {plugins: {legend: {labels: {color: cor}}, title: {display: true, text: 'Carta X̄', color: cor}}}
   });
 
-  if (cartaX) cartaX.destroy();
-  cartaX = config("graficoX", medias, mediaX, lscX, licX, "Carta de Controle X̄", '#0984e3');
-
-  if (cartaR) cartaR.destroy();
-  cartaR = config("graficoR", amplitudes, mediaR, lscR, licR, "Carta de Controle R", '#6c5ce7');
+  const ctxR = document.getElementById("graficoR").getContext("2d");
+  cartaR = new Chart(ctxR, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {label: 'R', data: amplitudes, borderColor: '#6c5ce7', backgroundColor: 'rgba(108,92,231,0.1)'},
+        {label: 'Média', data: Array(amplitudes.length).fill(mediaR), borderColor: cor, borderDash: [5, 5], fill: false},
+        {label: 'LSC', data: Array(amplitudes.length).fill(lscR), borderColor: '#d63031', borderDash: [5, 5]},
+        {label: 'LIC', data: Array(amplitudes.length).fill(licR), borderColor: '#d63031', borderDash: [5, 5]}
+      ]
+    },
+    options: {plugins: {legend: {labels: {color: cor}}, title: {display: true, text: 'Carta R', color: cor}}}
+  });
 }
 
-function atualizarTemaGrafico() {
-  if (cartaX || cartaR) gerarCartasControle();
+function getText(key) {
+  const lang = localStorage.getItem('lang') || 'pt';
+  const dict = {
+    pt: {
+      noOut: 'Todos os pontos estão dentro dos limites de controle.',
+      outPoints: 'Pontos Fora de Controle'
+    },
+    en: {
+      noOut: 'All points are within control limits.',
+      outPoints: 'Out of Control Points'
+    }
+  };
+  return dict[lang][key];
 }
 
-async function exportarPDF() {
+function exportarPDF() {
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF();
-  const canvasX = document.getElementById("graficoX");
-  const canvasR = document.getElementById("graficoR");
   pdf.text("Carta de Controle X̄", 10, 10);
-  pdf.addImage(canvasX.toDataURL("image/png"), 'PNG', 10, 15, 180, 80);
+  pdf.addImage(document.getElementById("graficoX").toDataURL(), 'PNG', 10, 15, 180, 80);
   pdf.text("Carta de Controle R", 10, 105);
-  pdf.addImage(canvasR.toDataURL("image/png"), 'PNG', 10, 110, 180, 80);
+  pdf.addImage(document.getElementById("graficoR").toDataURL(), 'PNG', 10, 110, 180, 80);
   pdf.save("cartas_de_controle.pdf");
 }
+
+window.addEventListener("DOMContentLoaded", () => {
+  const lang = localStorage.getItem('lang') || 'pt';
+  const escuro = localStorage.getItem('modoEscuro') === 'true';
+  document.body.classList.toggle('dark-mode', escuro);
+  setLanguage(lang);
+  gerarTabelaInputs();
+});
