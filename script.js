@@ -1,167 +1,244 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title data-i18n="title">Cartas de Controle X̄ e R</title>
+// script.js
 
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+let chartX = null;
+let chartR = null;
 
-  <style>
-    body {
-      background-color: #f8f9fa;
-      color: #212529;
-      font-family: Arial, sans-serif;
-      padding-bottom: 100px;
-      transition: background-color 0.3s, color 0.3s;
-    }
-    body.dark-mode {
-      background-color: #1e1e2f;
-      color: #ffffff;
-    }
-    .container {
-      max-width: 900px;
-      margin: auto;
-      padding: 30px;
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-      transition: background 0.3s;
-    }
-    body.dark-mode .container {
-      background: #2e2e3e;
-    }
-    .btn-inline button {
-      margin: 5px 5px 5px 0;
-    }
-    canvas {
-      margin-top: 30px;
-      width: 100% !important;
-      height: auto !important;
-      background: #fff;
-      border-radius: 5px;
-    }
-    body.dark-mode canvas {
-      background: #3b3b4f;
-    }
-    #dadosTable input {
-      width: 100%;
-      padding: 8px;
-      text-align: center;
-    }
-    #dadosTable, #tabela-fdc {
-      width: 100%;
-      margin-bottom: 20px;
-      border-collapse: collapse;
-    }
-    #dadosTable td, #tabela-fdc td, #tabela-fdc th {
-      border: 1px solid #ccc;
-      padding: 8px;
-    }
-    .menu-fixo {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 1055;
-    }
-    .menu-fixo button {
-      background-color: #003366;
-      color: white;
-      border-radius: 10px;
-      width: 64px;
-      height: 64px;
-      font-size: 1.4rem;
-      padding: 0;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-    }
-    .dark-mode .btn {
-      color: white;
-    }
-  </style>
-</head>
-<body>
-  <div class="menu-fixo">
-    <button class="btn shadow" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMenu">
-      <i class="fas fa-ellipsis-v"></i>
-    </button>
-  </div>
+function gerarTabelaInputs() {
+  const n = parseInt(document.getElementById("tamanho").value);
+  const tabela = document.getElementById("dadosTable");
+  tabela.innerHTML = "";
+  for (let i = 0; i < 5; i++) adicionarLinha();
+}
 
-  <div class="offcanvas offcanvas-start" id="offcanvasMenu" tabindex="-1">
-    <div class="offcanvas-header">
-      <h5 class="offcanvas-title">Menu</h5>
-      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
-    </div>
-    <div class="offcanvas-body">
-      <button class="btn btn-success w-100 mb-2" onclick="adicionarLinha()"><i class="fas fa-plus"></i> Adicionar Amostra</button>
-      <button class="btn btn-warning w-100 mb-2" onclick="removerLinha()"><i class="fas fa-minus"></i> Remover Amostra</button>
-      <button class="btn btn-danger w-100 mb-2" onclick="limparTabela()"><i class="fas fa-trash"></i> Limpar Tabela</button>
-      <button class="btn btn-primary w-100 mb-2" onclick="gerarCartasControle()"><i class="fas fa-chart-line"></i> Gerar Cartas</button>
-      <button class="btn btn-secondary w-100 mb-2" onclick="exportarPDF()"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
-      <button class="btn btn-info w-100 mb-2" onclick="exportarCSV()"><i class="fas fa-download"></i> Exportar CSV</button>
-      <input type="file" class="form-control mb-2" accept=".csv" onchange="importarCSV(event)" />
-      <button class="btn btn-dark w-100 mb-2" onclick="alternarModoEscuro()"><i id="iconeModo" class="fas fa-moon"></i> <span id="textoModo">Modo Escuro</span></button>
-    </div>
-  </div>
+function adicionarLinha() {
+  const n = parseInt(document.getElementById("tamanho").value);
+  const tabela = document.getElementById("dadosTable");
+  const row = tabela.insertRow();
+  for (let j = 0; j < n; j++) {
+    const cell = row.insertCell();
+    const input = document.createElement("input");
+    input.type = "number";
+    input.classList.add("form-control");
+    input.placeholder = `A${tabela.rows.length} - V${j + 1}`;
+    input.title = "Digite o valor da medição para esta posição";
+    input.addEventListener("input", salvarLocal);
+    cell.appendChild(input);
+  }
+  salvarLocal();
+}
 
-  <div class="container mt-3">
-    <div class="d-flex justify-content-between mb-3">
-      <div>
-        <button class="btn btn-dark" onclick="alternarModoEscuro()">
-          <i id="iconeModo" class="fas fa-moon"></i> <span id="textoModo">Modo Escuro</span>
-        </button>
-      </div>
-      <div class="d-flex">
-        <select id="langSelect" class="form-select w-auto" onchange="setLanguage(this.value)">
-          <option value="pt">Português</option>
-          <option value="en">English</option>
-        </select>
-      </div>
-    </div>
+function removerLinha() {
+  const tabela = document.getElementById("dadosTable");
+  if (tabela.rows.length > 0) tabela.deleteRow(tabela.rows.length - 1);
+  salvarLocal();
+}
 
-    <h1 class="text-center" data-i18n="title">Cartas de Controle X̄ e R</h1>
+function limparTabela() {
+  if (confirm("Tem certeza que deseja limpar os dados?")) {
+    document.getElementById("dadosTable").innerHTML = "";
+    localStorage.removeItem("dadosControle");
+    salvarLocal();
+  }
+}
 
-    <label for="tamanho" data-i18n="sizeLabel">Tamanho da amostra (n):</label>
-    <input type="number" id="tamanho" class="form-control" value="3" min="2" onchange="gerarTabelaInputs()" />
-
-    <label data-i18n="fillLabel">Preencha os valores das amostras:</label>
-    <div class="btn-inline">
-      <button class="btn btn-success" onclick="adicionarLinha()" data-i18n-html="add">+ Adicionar Amostra</button>
-      <button class="btn btn-warning" onclick="removerLinha()" data-i18n-html="remove">- Remover Amostra</button>
-      <button class="btn btn-danger" onclick="limparTabela()" data-i18n-html="clear">🗑️ Limpar Tabela</button>
-    </div>
-
-    <table id="dadosTable"></table>
-
-    <button class="btn btn-primary w-100" onclick="gerarCartasControle()" data-i18n-html="generate">Gerar Cartas</button>
-    <button class="btn btn-secondary w-100 mt-2" onclick="exportarPDF()" data-i18n-html="export">📄 Exportar para PDF</button>
-
-    <canvas id="graficoX"></canvas>
-    <canvas id="graficoR"></canvas>
-    <div id="fdc"></div>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="script.js"></script>
-
-  <script>
-    function alternarModoEscuro() {
-      document.body.classList.toggle('dark-mode');
-      const escuro = document.body.classList.contains('dark-mode');
-      document.getElementById('iconeModo').className = escuro ? 'fas fa-sun' : 'fas fa-moon';
-      document.getElementById('textoModo').textContent = escuro ? 'Modo Claro' : 'Modo Escuro';
-      localStorage.setItem('modoEscuro', escuro);
-      if (typeof updateCharts === 'function') updateCharts();
+function salvarLocal() {
+  const tabela = document.getElementById("dadosTable");
+  const dados = [];
+  for (const row of tabela.rows) {
+    const valores = [];
+    for (const cell of row.cells) {
+      const val = parseFloat(cell.firstChild.value);
+      valores.push(isNaN(val) ? "" : val);
     }
+    dados.push(valores);
+  }
+  localStorage.setItem("dadosControle", JSON.stringify(dados));
+}
 
-    window.addEventListener('DOMContentLoaded', () => {
-      const escuro = localStorage.getItem('modoEscuro') === 'true';
-      if (escuro) document.body.classList.add('dark-mode');
-      document.getElementById('iconeModo').className = escuro ? 'fas fa-sun' : 'fas fa-moon';
-      document.getElementById('textoModo').textContent = escuro ? 'Modo Claro' : 'Modo Escuro';
-    });
-  </script>
-</body>
-</html>
+function carregarLocal() {
+  const dados = JSON.parse(localStorage.getItem("dadosControle"));
+  if (!dados) return;
+  const tabela = document.getElementById("dadosTable");
+  tabela.innerHTML = "";
+  for (const linha of dados) {
+    const row = tabela.insertRow();
+    for (const valor of linha) {
+      const cell = row.insertCell();
+      const input = document.createElement("input");
+      input.type = "number";
+      input.classList.add("form-control");
+      input.placeholder = "valor";
+      input.value = valor;
+      input.addEventListener("input", salvarLocal);
+      cell.appendChild(input);
+    }
+  }
+}
+
+function exportarPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.text("Carta de Controle X̄", 10, 10);
+  const imgX = document.getElementById("graficoX").toDataURL();
+  doc.addImage(imgX, 'PNG', 10, 15, 180, 80);
+  doc.text("Carta de Controle R", 10, 100);
+  const imgR = document.getElementById("graficoR").toDataURL();
+  doc.addImage(imgR, 'PNG', 10, 105, 180, 80);
+  doc.save("cartas_controle.pdf");
+}
+
+function exportarCSV() {
+  let csv = "";
+  const tabela = document.getElementById("dadosTable");
+  for (const row of tabela.rows) {
+    const linha = Array.from(row.cells).map(cell => cell.firstChild.value).join(",");
+    csv += linha + "\n";
+  }
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "amostras.csv";
+  link.click();
+}
+
+function importarCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const linhas = e.target.result.trim().split("\n");
+    const tabela = document.getElementById("dadosTable");
+    tabela.innerHTML = "";
+    for (const linha of linhas) {
+      const row = tabela.insertRow();
+      for (const valor of linha.split(",")) {
+        const cell = row.insertCell();
+        const input = document.createElement("input");
+        input.type = "number";
+        input.classList.add("form-control");
+        input.value = valor;
+        input.addEventListener("input", salvarLocal);
+        cell.appendChild(input);
+      }
+    }
+  };
+  reader.readAsText(file);
+}
+
+function gerarCartasControle() {
+  const tabela = document.getElementById("dadosTable");
+  const n = parseInt(document.getElementById("tamanho").value);
+  const amostras = [];
+
+  for (const row of tabela.rows) {
+    const linha = [];
+    for (const cell of row.cells) {
+      const val = parseFloat(cell.firstChild.value);
+      if (!isNaN(val)) linha.push(val);
+    }
+    if (linha.length === n) amostras.push(linha);
+  }
+
+  if (amostras.length < 2) {
+    alert("Insira ao menos duas amostras completas.");
+    return;
+  }
+
+  const medias = amostras.map(a => a.reduce((a, b) => a + b, 0) / a.length);
+  const amplitudes = amostras.map(a => Math.max(...a) - Math.min(...a));
+  const mediaX = medias.reduce((a, b) => a + b, 0) / medias.length;
+  const mediaR = amplitudes.reduce((a, b) => a + b, 0) / amplitudes.length;
+
+  const A2 = {2: 1.880, 3: 1.023, 4: 0.729, 5: 0.577}[n] || 0.577;
+  const D3 = {2: 0, 3: 0, 4: 0, 5: 0}[n] || 0;
+  const D4 = {2: 3.267, 3: 2.574, 4: 2.282, 5: 2.114}[n] || 2.114;
+
+  const lscX = mediaX + A2 * mediaR;
+  const licX = mediaX - A2 * mediaR;
+  const lscR = D4 * mediaR;
+  const licR = D3 * mediaR;
+
+  const ctxX = document.getElementById("graficoX").getContext("2d");
+  const ctxR = document.getElementById("graficoR").getContext("2d");
+  if (chartX) chartX.destroy();
+  if (chartR) chartR.destroy();
+
+  const isDark = document.body.classList.contains("dark-mode");
+  const textColor = isDark ? '#fff' : '#000';
+
+  chartX = new Chart(ctxX, {
+    type: 'line',
+    data: {
+      labels: medias.map((_, i) => `Amostra ${i + 1}`),
+      datasets: [
+        {
+          label: 'Média (X̄)',
+          data: medias,
+          borderColor: '#007bff',
+          backgroundColor: medias.map(v => (v > lscX || v < licX ? 'red' : '#007bff')),
+          pointBackgroundColor: medias.map(v => (v > lscX || v < licX ? 'red' : '#007bff')),
+          tension: 0.2
+        },
+        {
+          label: 'Média Geral', data: Array(medias.length).fill(mediaX), borderColor: 'gray', borderDash: [5, 5]
+        },
+        {
+          label: 'LSC', data: Array(medias.length).fill(lscX), borderColor: 'red', borderDash: [5, 5]
+        },
+        {
+          label: 'LIC', data: Array(medias.length).fill(licX), borderColor: 'red', borderDash: [5, 5]
+        }
+      ]
+    },
+    options: {
+      plugins: { legend: { labels: { color: textColor } }, title: { display: true, text: 'Carta X̄', color: textColor } },
+      scales: { x: { ticks: { color: textColor } }, y: { ticks: { color: textColor } } }
+    }
+  });
+
+  chartR = new Chart(ctxR, {
+    type: 'line',
+    data: {
+      labels: amplitudes.map((_, i) => `Amostra ${i + 1}`),
+      datasets: [
+        {
+          label: 'Amplitude (R)',
+          data: amplitudes,
+          borderColor: '#17a2b8',
+          backgroundColor: amplitudes.map(v => (v > lscR || v < licR ? 'red' : '#17a2b8')),
+          pointBackgroundColor: amplitudes.map(v => (v > lscR || v < licR ? 'red' : '#17a2b8')),
+          tension: 0.2
+        },
+        {
+          label: 'Média R', data: Array(amplitudes.length).fill(mediaR), borderColor: 'gray', borderDash: [5, 5]
+        },
+        {
+          label: 'LSC', data: Array(amplitudes.length).fill(lscR), borderColor: 'red', borderDash: [5, 5]
+        },
+        {
+          label: 'LIC', data: Array(amplitudes.length).fill(licR), borderColor: 'red', borderDash: [5, 5]
+        }
+      ]
+    },
+    options: {
+      plugins: { legend: { labels: { color: textColor } }, title: { display: true, text: 'Carta R', color: textColor } },
+      scales: { x: { ticks: { color: textColor } }, y: { ticks: { color: textColor } } }
+    }
+  });
+
+  const fdcX = medias.map((v, i) => ({ tipo: 'X̄', amostra: i + 1, valor: v })).filter(p => p.valor > lscX || p.valor < licX);
+  const fdcR = amplitudes.map((v, i) => ({ tipo: 'R', amostra: i + 1, valor: v })).filter(p => p.valor > lscR || p.valor < licR);
+
+  const fdc = [...fdcX, ...fdcR];
+  let html = "";
+  if (fdc.length > 0) {
+    html = `<h4>Pontos Fora de Controle</h4><table class='table table-bordered'><tr><th>Tipo</th><th>Amostra</th><th>Valor</th></tr>${fdc.map(p => `<tr><td>${p.tipo}</td><td>${p.amostra}</td><td>${p.valor.toFixed(2)}</td></tr>`).join('')}</table>`;
+  } else {
+    html = `<div class='alert alert-success mt-3'>Todos os pontos estão dentro dos limites de controle.</div>`;
+  }
+  document.getElementById("fdc").innerHTML = html;
+}
+
+window.onload = () => {
+  carregarLocal();
+};
